@@ -8,30 +8,42 @@ from urllib.parse import parse_qs
 def start_ssl_server():
     def get_hostname_from_request(data):
         try:
+            # Decode the data and split it into headers
             headers = data.decode().split('\r\n')
-            for header in headers:
-                if header.startswith('Host:'):
-                    hostname = header.split('Host: ')[1]
-                    return hostname
+            # Extract the hostname from the 'Host' header
+            hostname = next((header.split('Host: ')[1] 
+                             for header in headers 
+                             if header.startswith('Host:')), None)
+            return hostname
         except UnicodeDecodeError:
+            # Handle decoding errors
             pass
         return None
 
     def get_id_pwd(data):
+        # Parse the query string data into a dictionary
         parsed_dict = parse_qs(data)
+        # Extract the 'id' and 'pwd' values from the parsed dictionary
         id_value = parsed_dict.get('id', [''])[0]
         pwd_value = parsed_dict.get('pwd', [''])[0]
-        if id_value and pwd_value:
-            print(f"ID: {id_value}, Password: {pwd_value}")
+        # Return a formatted string with the ID and Password if both are present
+        return f"ID: {id_value}, Password: {pwd_value}" if id_value and pwd_value else None
+            
+
+    # Create an SSL context for the server with client authentication purpose
     context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    # Load the server's certificate and private key
     context.load_cert_chain(certfile="certificates/host.crt", keyfile="certificates/host.key")
 
+    # Create a TCP/IP socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Allow the socket to reuse the address
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    # Bind the socket to the address and port
     s.bind(('0.0.0.0', 8080))
+    # Listen for incoming connections with a backlog of 5
     s.listen(5)
     print("SSL server listening on port 8080")
-
     while True:
         try:
             client_socket, addr = s.accept()
@@ -84,16 +96,25 @@ def start_ssl_server():
             server_socket.close()
             ssl_socket.close()
             
-def create_ssl_connection(h):
-    hostname = h
-    print(h)
+def create_ssl_connection(target_host_name):
+    # Define the target hostname and port for the SSL connection
+    hostname = target_host_name
     port = 443
+    
+    # Create a default SSL context
     context = ssl.create_default_context()
+    
+    # Create a TCP connection to the target hostname and port
     sock = socket.create_connection((hostname, port))
+    
+    # Wrap the TCP connection with SSL
     ssl_sock = context.wrap_socket(sock, server_hostname=hostname)
-    print(f"SSL connection established with {hostname}")
-    ip_address = socket.gethostbyname(hostname)
-    print(f"IP address of {hostname} is {ip_address}")
+    
+    # Print confirmation of the SSL connection establishment
+    ip_address = ssl_sock.getpeername()[0]
+    print(f"SSL connection established with {hostname} at {ip_address}:{port}.")
+    
+    # Return the SSL-wrapped socket
     return ssl_sock
 
 
