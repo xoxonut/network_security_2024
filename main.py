@@ -2,6 +2,7 @@ import ssl
 import socket
 import threading
 from urllib.parse import parse_qs
+import sys
 
 def get_hostname_from_request(data):
     try:
@@ -68,7 +69,7 @@ def handle_mitm_task(victim_socket):
     
             
 
-def start_ssl_server():
+def start_ssl_server(accept_ip):
 
     # Create an SSL context for the server with client authentication purpose
     context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -87,7 +88,12 @@ def start_ssl_server():
     while True:
         try:
             # Accept a new client connection
-            client_socket, addr = s.accept()
+            client_socket, client_addr = s.accept()
+            client_ip = client_addr[0]
+            if client_ip != accept_ip:
+                client_socket.close()
+                print(f"Connection from {client_ip} is not allowed")
+                continue
             # Wrap the client socket with SSL for secure communication
             ssl_socket = context.wrap_socket(client_socket, server_side=True)
             # Start a new thread to handle the MITM task for the connected client
@@ -117,5 +123,6 @@ def create_ssl_connection(target_host_name):
     # Return the SSL-wrapped socket
     return ssl_sock
 
-
-start_ssl_server()
+if __name__ == "__main__":
+    accept_ip = sys.argv[1]
+    start_ssl_server(accept_ip)
