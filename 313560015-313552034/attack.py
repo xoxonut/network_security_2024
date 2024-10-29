@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import ssl
 import socket
 import threading
@@ -74,7 +75,7 @@ def start_ssl_server(accept_ip):
     # Create an SSL context for the server with client authentication purpose
     context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     # Load the server's certificate and private key
-    context.load_cert_chain(certfile="certificates/host.crt", keyfile="certificates/host.key")
+    context.load_cert_chain(certfile="../certificates/host.crt", keyfile="../certificates/host.key")
 
     # Create a TCP/IP socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
